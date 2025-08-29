@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Budget & Savings Planner</title>
+  <meta name="description" content="A clean, single‑file budget & savings planner with two cut‑off payroll support, local storage, and goal tracking." />
+  <style>
+    :root{
+      --bg: #16161a;
+      --headline: #fffffe;
+      --text: #94a1b2;
+      --btn: #7f5af0;
+      --btn-text: #fffffe;
+      --stroke: #010101;
+      --main: #fffffe;
+      --highlight: #7f5af0;
+      --secondary: #72757e;
+      --tertiary: #2cb67d;
+      --card: #1f2030;
+      --card-2: #1b1c29;
+      --danger: #ff6b6b;
+      --warning: #ffd166;
+      --ok: #2cb67d;
+      --muted: #21222d;
+      --radius: 18px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin: 0; font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 70% -10%, #212339 0%, var(--bg) 60%);
+      color: var(--text);
+    }
+
+    .container{ max-width: 1100px; margin: 28px auto 80px; padding: 0 16px; }
+    header{
+      display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:22px;
+    }
+    .brand{ display:flex; align-items:center; gap:12px; }
+    .logo{
+      width:44px;height:44px;border-radius:12px; background: linear-gradient(135deg, var(--highlight), #9b8cff);
+      display:grid;place-items:center;color:#0b0b12;font-weight:900; box-shadow: var(--shadow);
+    }
+    .logo span{ transform: translateY(-1px); }
+    h1{ margin:0; color:var(--headline); font-size: clamp(18px, 3vw, 26px); letter-spacing: .3px; }
+    .sub{ font-size:12px; color: var(--secondary); }
+
+    .nav{
+      display:flex; flex-wrap:wrap; gap:8px;
+    }
+    .tab{
+      background: var(--muted); border:1px solid #2a2c3a; color:var(--main); padding:10px 14px; border-radius:12px; cursor:pointer; transition:.2s;
+    }
+    .tab[aria-selected="true"], .tab:hover{ background: var(--btn); color: var(--btn-text); border-color: transparent; }
+
+    .grid{ display:grid; gap:16px; }
+    @media (min-width: 920px){ .grid{ grid-template-columns: 1.2fr .8fr; } }
+
+    .card{ background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%); border:1px solid #2a2c3a; border-radius: var(--radius); box-shadow: var(--shadow); padding:16px; }
+    .card h2{ color: var(--main); margin:0 0 12px; font-size: 18px; }
+    .card h3{ color: var(--main); margin:8px 0; font-size: 14px; }
+
+    .row{ display:grid; grid-template-columns: repeat(12, 1fr); gap:10px; }
+    .col-6{ grid-column: span 6; } .col-4{ grid-column: span 4; } .col-3{ grid-column: span 3; } .col-12{ grid-column: span 12; }
+    @media (max-width: 720px){ .col-6,.col-4,.col-3{ grid-column: span 12; } }
+
+    label{ display:block; font-size:12px; color: var(--secondary); margin-bottom:6px; }
+    input, select, textarea{
+      width: 100%; background: #161826; color: var(--main); border:1px solid #2f3142; border-radius: 12px; padding: 10px 12px; outline: none; transition: .2s;
+    }
+    input:focus, select:focus, textarea:focus{ border-color: var(--highlight); box-shadow: 0 0 0 4px rgba(127,90,240,.15); }
+
+    .btn{ display:inline-flex; align-items:center; gap:8px; border:1px solid transparent; background: var(--btn); color: var(--btn-text); padding: 10px 14px; border-radius: 12px; cursor:pointer; font-weight:600; box-shadow: var(--shadow); }
+    .btn.secondary{ background: #24263a; color: var(--main); border-color:#2a2c3a; }
+    .btn.ghost{ background: transparent; border-color:#2a2c3a; color: var(--main); }
+
+    .pill{ display:inline-block; padding:4px 8px; border-radius:100px; font-size:11px; border:1px solid #2a2c3a; color:var(--secondary); }
+    .ok{ color: var(--ok);} .warn{ color: var(--warning);} .bad{ color: var(--danger);} .accent{ color: var(--highlight);} .mono{ font-variant-numeric: tabular-nums; }
+
+    table{ width:100%; border-collapse: collapse; }
+    th, td{ padding:10px; border-bottom:1px dashed #32344a; text-align:left; font-size:13px; }
+    th{ color: var(--secondary); font-weight:600; }
+
+    .footer{ text-align:center; margin-top:18px; color:var(--secondary); font-size:12px; }
+    .stack{ display:flex; flex-direction:column; gap:12px; }
+    .flex{ display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+
+    .number{ text-align:right; }
+    .right{ text-align:right; }
+
+    .bar{ height:10px; background:#24263a; border-radius:999px; overflow:hidden; border:1px solid #2a2c3a; }
+    .bar > i{ display:block; height:100%; width:0%; background: linear-gradient(90deg, var(--highlight), #9b8cff); }
+
+    .hint{ font-size:12px; color: var(--secondary); }
+    .muted{ color:var(--secondary); }
+
+    .hidden{ display:none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo"><span>₱</span></div>
+        <div>
+          <h1>My Budget & Savings Planner</h1>
+          <div class="sub">Built just for me</div>
+        </div>
+      </div>
+      <nav class="nav" role="tablist" aria-label="Sections">
+        <button class="tab" data-tab="dashboard" aria-selected="true">Dashboard</button>
+        <button class="tab" data-tab="payroll">Paycheck (2 cut‑offs)</button>
+        <button class="tab" data-tab="budget">Budget</button>
+        <button class="tab" data-tab="goals">Goals</button>
+        <button class="tab" data-tab="log">Expense Log</button>
+        <button class="tab" data-tab="backup">Backup</button>
+      </nav>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="grid card" role="tabpanel">
+      <div class="stack">
+        <h2>Overview</h2>
+        <div class="row">
+          <div class="col-6">
+            <label>Monthly Salary</label>
+            <input type="number" id="salary" placeholder="16000" />
+          </div>
+          <div class="col-6">
+            <label>Monthly Allowance / Other Income</label>
+            <input type="number" id="allowance" placeholder="2500" />
+          </div>
+          <div class="col-6">
+            <label>Other Recurring Income</label>
+            <input type="number" id="otherIncome" placeholder="0" />
+          </div>
+          <div class="col-6">
+            <label>Custom Monthly Deductions (Optional, total)</label>
+            <input type="number" id="customDeduct" placeholder="0" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-3"><label>SSS</label><input type="number" id="sss" placeholder="0" /></div>
+          <div class="col-3"><label>PhilHealth</label><input type="number" id="philhealth" placeholder="0" /></div>
+          <div class="col-3"><label>Pag‑IBIG</label><input type="number" id="pagibig" placeholder="0" /></div>
+          <div class="col-3"><label>Tax</label><input type="number" id="tax" placeholder="0" /></div>
+        </div>
+
+        <div class="row">
+          <div class="col-6">
+            <div class="card">
+              <h3>Net Income (Monthly)</h3>
+              <div class="flex" style="justify-content:space-between;">
+                <div>
+                  <div class="muted">Gross</div>
+                  <div class="mono" id="grossOut">₱0</div>
+                </div>
+                <div>
+                  <div class="muted">Deductions</div>
+                  <div class="mono" id="deductOut">₱0</div>
+                </div>
+                <div>
+                  <div class="muted">Net</div>
+                  <div class="mono" style="font-size:22px;color:var(--ok);" id="netOut">₱0</div>
+                </div>
+              </div>
+              <div class="bar" aria-hidden="true"><i id="netBar"></i></div>
+              <div class="hint">Tip: Fill your actual statutory deductions for accuracy.</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="card">
+              <h3>50/30/20 Guide</h3>
+              <table>
+                <thead><tr><th>Type</th><th class="right">₱</th></tr></thead>
+                <tbody>
+                  <tr><td>Needs (50%)</td><td class="right mono" id="f5020">₱0</td></tr>
+                  <tr><td>Wants (30%)</td><td class="right mono" id="f3020">₱0</td></tr>
+                  <tr><td>Savings/Debt (20%)</td><td class="right mono" id="f2020">₱0</td></tr>
+                </tbody>
+              </table>
+              <div class="hint">Use this as a starting point then fine‑tune in the Budget tab.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <aside class="stack">
+        <h2>Quick Notes</h2>
+        <textarea id="notes" rows="12" placeholder="Write reminders, due dates, or tricks that work for you…"></textarea>
+        <div class="flex">
+          <button class="btn" id="resetAll">Reset</button>
+          <span class="pill">Auto‑saved</span>
+        </div>
+      </aside>
+    </section>
+
+    <!-- PAYROLL -->
+    <section id="payroll" class="card hidden" role="tabpanel">
+      <h2>Paycheck Planner (Two Cut‑Offs)</h2>
+      <div class="row">
+        <div class="col-6"><label>Cut‑off 1 (% of net)</label><input type="number" id="cut1" value="50" /></div>
+        <div class="col-6"><label>Cut‑off 2 (% of net)</label><input type="number" id="cut2" value="50" /></div>
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <div class="card">
+            <h3>Cut‑off 1</h3>
+            <div class="mono" id="cut1Amt">₱0</div>
+            <table>
+              <thead><tr><th>Allocation</th><th class="right">₱</th></tr></thead>
+              <tbody id="cut1Table"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="card">
+            <h3>Cut‑off 2</h3>
+            <div class="mono" id="cut2Amt">₱0</div>
+            <table>
+              <thead><tr><th>Allocation</th><th class="right">₱</th></tr></thead>
+              <tbody id="cut2Table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="hint">Tip: The tables mirror your Budget percentages so you know what to pay each payroll.</div>
+    </section>
+
+    <!-- BUDGET -->
+    <section id="budget" class="card hidden" role="tabpanel">
+      <h2>Budget Categories</h2>
+      <div class="row">
+        <div class="col-12">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:38%">Category</th>
+                <th style="width:20%" class="right">% of Net</th>
+                <th style="width:20%" class="right">₱ / Month</th>
+                <th class="right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="budgetBody"></tbody>
+            <tfoot>
+              <tr>
+                <th class="right">Total</th>
+                <th class="right mono" id="pctTotal">0%</th>
+                <th class="right mono" id="amtTotal">₱0</th>
+                <th></th>
+              </tr>
+            </tfoot>
+          </table>
+          <div class="flex" style="justify-content:space-between; margin-top:10px;">
+            <div class="hint">Aim for 100%. If below 100%, the remainder is unallocated (extra savings or buffer).</div>
+            <div>
+              <input id="newCatName" placeholder="New category (e.g., Rent, Food, Transport)" />
+              <input id="newCatPct" type="number" placeholder="%" class="number" style="max-width:120px" />
+              <button class="btn" id="addCat">Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GOALS -->
+    <section id="goals" class="card hidden" role="tabpanel">
+      <h2>Savings Goals</h2>
+      <div class="row">
+        <div class="col-12">
+          <table>
+            <thead>
+              <tr>
+                <th>Goal</th>
+                <th class="right">Target (₱)</th>
+                <th class="right">Monthly Save (₱)</th>
+                <th class="right">Months</th>
+                <th class="right">Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="goalsBody"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="6" class="hint">Tip: Surplus from Budget can auto‑fill here.</td>
+              </tr>
+            </tfoot>
+          </table>
+          <div class="flex" style="justify-content:flex-end; margin-top:10px;">
+            <input id="newGoalName" placeholder="Emergency Fund" />
+            <input id="newGoalTarget" type="number" placeholder="15000" class="number" />
+            <input id="newGoalMonthly" type="number" placeholder="1500" class="number" />
+            <button class="btn" id="addGoal">Add Goal</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOG -->
+    <section id="log" class="card hidden" role="tabpanel">
+      <h2>Expense Log (Lite)</h2>
+      <div class="row">
+        <div class="col-4"><label>Date</label><input type="date" id="logDate"></div>
+        <div class="col-4"><label>Category</label><input id="logCat" list="catList" placeholder="(match a Budget category)" /></div>
+        <div class="col-4"><label>Amount (₱)</label><input type="number" id="logAmt" class="number" /></div>
+        <div class="col-12"><label>Note</label><input id="logNote" placeholder="Optional memo" /></div>
+        <div class="col-12"><button class="btn" id="addLog">Add Entry</button></div>
+      </div>
+      <datalist id="catList"></datalist>
+      <table style="margin-top:14px">
+        <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="right">₱</th><th></th></tr></thead>
+        <tbody id="logBody"></tbody>
+        <tfoot>
+          <tr>
+            <th colspan="3" class="right">This Month</th>
+            <th class="right mono" id="logMonthTotal">₱0</th>
+            <th></th>
+          </tr>
+        </tfoot>
+      </table>
+    </section>
+
+    <!-- BACKUP -->
+    <section id="backup" class="card hidden" role="tabpanel">
+      <h2>Backup & Restore</h2>
+      <p class="hint">Your data auto‑saves to this browser only. Export a JSON backup or restore below.</p>
+      <div class="flex">
+        <button class="btn" id="downloadBackup">Download Backup</button>
+        <label class="btn ghost" for="restoreFile">Restore…</label>
+        <input id="restoreFile" type="file" accept="application/json" class="hidden"/>
+      </div>
+    </section>
+
+    <p class="footer">Designed and Developed by: Rjames</p>
+  </div>
+
+<script>
+(function(){
+  const $ = (s, root=document) => root.querySelector(s);
+  const $$ = (s, root=document) => [...root.querySelectorAll(s)];
+  const peso = n => `₱${(n||0).toLocaleString(undefined,{maximumFractionDigits:2})}`;
+
+  const state = {
+    salary: 16000, allowance: 2500, otherIncome: 0, customDeduct: 0,
+    sss: 0, philhealth: 0, pagibig: 0, tax: 0,
+    notes: '',
+    cut1: 50, cut2: 50,
+    budget: [
+      {name:'Needs', pct:50},
+      {name:'Wants', pct:30},
+      {name:'Savings/Debt', pct:20}
+    ],
+    goals: [
+      {name:'Emergency Fund', target:15000, monthly:1500}
+    ],
+    log: []
+  };
+
+  const load = () => {
+    try{
+      const saved = JSON.parse(localStorage.getItem('my-budget-v1')||'null');
+      if(saved){ Object.assign(state, saved); }
+    }catch(e){ console.warn(e); }
+  };
+  const save = () => localStorage.setItem('my-budget-v1', JSON.stringify(state));
+
+  function initTabs(){
+    $$('.tab').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const name = btn.dataset.tab;
+        $$('.tab').forEach(b=>b.setAttribute('aria-selected', String(b===btn)));
+        $$('section[role="tabpanel"]').forEach(s=>s.classList.toggle('hidden', s.id!==name));
+        if(name==='budget') renderBudget();
+        if(name==='payroll') renderPayroll();
+        if(name==='goals') renderGoals();
+        if(name==='log') renderLog();
+      });
+    });
+  }
+
+  function bindInputs(){
+    const map=[
+      ['salary','salary'],['allowance','allowance'],['otherIncome','otherIncome'],
+      ['customDeduct','customDeduct'],['sss','sss'],['philhealth','philhealth'],
+      ['pagibig','pagibig'],['tax','tax'],['notes','notes','input'],
+      ['cut1','cut1'],['cut2','cut2']
+    ];
+    map.forEach(([id,key,ev='change'])=>{
+      const el = $('#'+id);
+      if(!el) return;
+      el.value = state[key] ?? '';
+      el.addEventListener(ev,()=>{
+        state[key] = (el.type==='number' || key!=='notes') ? Number(el.value||0) : el.value;
+        if(key==='notes') return save();
+        updateDashboard(); save(); renderBudget(); renderPayroll(); renderGoals();
+      });
+    });
+    $('#resetAll').addEventListener('click',()=>{
+      if(confirm('Reset all values to defaults?')){
+        localStorage.removeItem('my-budget-v1'); location.reload();
+      }
+    });
+  }
+
+  function netMonthly(){
+    const gross = (state.salary||0) + (state.allowance||0) + (state.otherIncome||0);
+    const deductions = (state.sss||0)+(state.philhealth||0)+(state.pagibig||0)+(state.tax||0)+(state.customDeduct||0);
+    return { gross, deductions, net: Math.max(0, gross - deductions) };
+  }
+
+  function updateDashboard(){
+    const {gross, deductions, net} = netMonthly();
+    $('#grossOut').textContent = peso(gross);
+    $('#deductOut').textContent = peso(deductions);
+    $('#netOut').textContent = peso(net);
+    const pct = gross? Math.min(100, Math.round((net/gross)*100)):0;
+    $('#netBar').style.width = pct+'%';
+    $('#f5020').textContent = peso(net*0.50);
+    $('#f3020').textContent = peso(net*0.30);
+    $('#f2020').textContent = peso(net*0.20);
+  }
+
+  function renderBudget(){
+    const body = $('#budgetBody');
+    body.innerHTML = '';
+    const { net } = netMonthly();
+    let pctSum=0, amtSum=0;
+
+    state.budget.forEach((row, idx)=>{
+      const amt = net * (row.pct/100);
+      pctSum += row.pct; amtSum += amt;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input value="${row.name}" data-k="name" data-i="${idx}"></td>
+        <td class="right"><input class="number" type="number" value="${row.pct}" data-k="pct" data-i="${idx}"></td>
+        <td class="right mono">${peso(amt)}</td>
+        <td class="right"><button class="btn secondary" data-act="del" data-i="${idx}">Remove</button></td>`;
+      body.appendChild(tr);
+    });
+
+    $('#pctTotal').textContent = pctSum.toFixed(2)+'%';
+    $('#amtTotal').textContent = peso(amtSum);
+
+    // datalist for Log categories
+    const dl = $('#catList'); dl.innerHTML='';
+    state.budget.forEach(b=>{ const o=document.createElement('option'); o.value=b.name; dl.appendChild(o); });
+
+    // handlers
+    body.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('change', ()=>{
+        const i = Number(inp.dataset.i), k = inp.dataset.k;
+        state.budget[i][k] = (k==='pct')? Number(inp.value||0) : inp.value.trim()||'Unnamed';
+        save(); renderBudget(); renderPayroll();
+      });
+    });
+    body.querySelectorAll('button[data-act="del"]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const i = Number(btn.dataset.i);
+        state.budget.splice(i,1); save(); renderBudget(); renderPayroll();
+      });
+    });
+
+    $('#addCat').onclick = ()=>{
+      const name = ($('#newCatName').value||'').trim();
+      const pct = Number($('#newCatPct').value||0);
+      if(!name) return alert('Enter a category name');
+      state.budget.push({name, pct});
+      $('#newCatName').value=''; $('#newCatPct').value='';
+      save(); renderBudget(); renderPayroll();
+    };
+  }
+
+  function renderPayroll(){
+    const { net } = netMonthly();
+    const p1 = Math.max(0, Math.min(100, Number(state.cut1||0)));
+    const p2 = Math.max(0, Math.min(100, Number(state.cut2||0)));
+    const norm = (p1 + p2) || 1; // avoid divide by zero
+    const w1 = p1 / norm, w2 = p2 / norm; // normalized
+    const a1 = net * w1, a2 = net * w2;
+    $('#cut1').value = p1; $('#cut2').value = p2;
+    $('#cut1Amt').textContent = peso(a1); $('#cut2Amt').textContent = peso(a2);
+    const t1 = $('#cut1Table'); const t2 = $('#cut2Table'); t1.innerHTML=''; t2.innerHTML='';
+
+    state.budget.forEach(row=>{
+      const m = net * (row.pct/100);
+      const r1 = document.createElement('tr'); r1.innerHTML = `<td>${row.name}</td><td class="right mono">${peso(m*w1)}</td>`; t1.appendChild(r1);
+      const r2 = document.createElement('tr'); r2.innerHTML = `<td>${row.name}</td><td class="right mono">${peso(m*w2)}</td>`; t2.appendChild(r2);
+    });
+
+    $('#cut1').onchange = ()=>{ state.cut1 = Number($('#cut1').value||0); save(); renderPayroll(); };
+    $('#cut2').onchange = ()=>{ state.cut2 = Number($('#cut2').value||0); save(); renderPayroll(); };
+  }
+
+  function renderGoals(){
+    const body = $('#goalsBody'); body.innerHTML='';
+    state.goals.forEach((g,i)=>{
+      const months = g.monthly>0? Math.max(0, Math.ceil((g.target||0)/g.monthly)) : Infinity;
+      const done = months===0 || g.target<=0;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input value="${g.name}" data-k="name" data-i="${i}"></td>
+        <td class="right"><input type="number" class="number" value="${g.target}" data-k="target" data-i="${i}"></td>
+        <td class="right"><input type="number" class="number" value="${g.monthly}" data-k="monthly" data-i="${i}"></td>
+        <td class="right mono">${months===Infinity?'–':months+' mo'}</td>
+        <td class="right">${done?'<span class="pill">Completed</span>':''}</td>
+        <td class="right"><button class="btn secondary" data-act="del" data-i="${i}">Remove</button></td>`;
+      body.appendChild(tr);
+    });
+
+    body.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('change',()=>{
+        const i=Number(inp.dataset.i), k=inp.dataset.k; let v=inp.value;
+        if(k!=='name') v=Number(v||0);
+        state.goals[i][k]=v; save(); renderGoals();
+      });
+    });
+    body.querySelectorAll('button[data-act="del"]').forEach(btn=>{
+      btn.addEventListener('click',()=>{ const i=Number(btn.dataset.i); state.goals.splice(i,1); save(); renderGoals(); });
+    });
+
+    $('#addGoal').onclick = ()=>{
+      const name=($('#newGoalName').value||'').trim()||'Untitled Goal';
+      const target=Number($('#newGoalTarget').value||0);
+      const monthly=Number($('#newGoalMonthly').value||0);
+      state.goals.push({name,target,monthly});
+      $('#newGoalName').value=''; $('#newGoalTarget').value=''; $('#newGoalMonthly').value='';
+      save(); renderGoals();
+    };
+  }
+
+  function renderLog(){
+    const body=$('#logBody'); body.innerHTML='';
+    const now = new Date(); const y=now.getFullYear(), m=now.getMonth();
+    let monthTotal=0;
+    state.log.forEach((e,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td>${e.date}</td><td>${e.category}</td><td>${e.note||''}</td><td class="right mono">${peso(e.amount)}</td><td class="right"><button class="btn secondary" data-i="${i}">Remove</button></td>`;
+      body.appendChild(tr);
+      const d=new Date(e.date);
+      if(d.getFullYear()===y && d.getMonth()===m) monthTotal += Number(e.amount)||0;
+    });
+    $('#logMonthTotal').textContent = peso(monthTotal);
+  }
+
+  function bindLog(){
+    $('#addLog').onclick = ()=>{
+      const date = $('#logDate').value || new Date().toISOString().slice(0,10);
+      const category = ($('#logCat').value||'').trim()||'Uncategorized';
+      const amount = Number($('#logAmt').value||0);
+      const note = $('#logNote').value||'';
+      if(!amount) return alert('Enter an amount');
+      state.log.unshift({date, category, amount, note});
+      $('#logAmt').value=''; $('#logNote').value='';
+      save(); renderLog();
+    };
+    $('#logBody').addEventListener('click',(e)=>{
+      const btn = e.target.closest('button'); if(!btn) return;
+      const i = Number(btn.dataset.i); state.log.splice(i,1); save(); renderLog();
+    });
+  }
+
+  function backupRestore(){
+    $('#downloadBackup').onclick = ()=>{
+      const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement('a'), {href:url, download:'my-budget-backup.json'});
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    };
+    $('#restoreFile').addEventListener('change', (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{ const data = JSON.parse(reader.result);
+          Object.assign(state, data); save(); location.reload();
+        }catch(err){ alert('Invalid backup file.'); }
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  function start(){
+    load();
+    initTabs();
+    bindInputs();
+    bindLog();
+    backupRestore();
+    updateDashboard();
+    renderBudget();
+    renderPayroll();
+    renderGoals();
+    renderLog();
+  }
+
+  document.addEventListener('DOMContentLoaded', start);
+})();
+</script>
+</body>
+</html>
