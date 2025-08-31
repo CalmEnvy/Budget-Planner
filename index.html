@@ -201,36 +201,48 @@
     </section>
 
     <!-- PAYROLL -->
-    <section id="payroll" class="card hidden" role="tabpanel">
-      <h2>Paycheck Planner (Two Cut‑Offs)</h2>
-      <div class="row">
-        <div class="col-6"><label>Cut‑off 1 (% of net)</label><input type="number" id="cut1" value="50" /></div>
-        <div class="col-6"><label>Cut‑off 2 (% of net)</label><input type="number" id="cut2" value="50" /></div>
-      </div>
-      <div class="row">
-        <div class="col-6">
-          <div class="card">
-            <h3>Cut‑off 1</h3>
-            <div class="mono" id="cut1Amt">₱0</div>
-            <table>
-              <thead><tr><th>Allocation</th><th class="right">₱</th></tr></thead>
-              <tbody id="cut1Table"></tbody>
-            </table>
-          </div>
-        </div>
-        <div class="col-6">
-          <div class="card">
-            <h3>Cut‑off 2</h3>
-            <div class="mono" id="cut2Amt">₱0</div>
-            <table>
-              <thead><tr><th>Allocation</th><th class="right">₱</th></tr></thead>
-              <tbody id="cut2Table"></tbody>
-            </table>
-          </div>
+<section id="payroll" class="card hidden" role="tabpanel">
+  <h2>Paycheck Planner (Two Cut-Offs)</h2>
+  <div class="row">
+    <div class="col-6"><label>Cut-off 1 (₱ Amount)</label><input type="number" id="cut1" value="0" /></div>
+    <div class="col-6"><label>Cut-off 2 (₱ Amount)</label><input type="number" id="cut2" value="0" /></div>
+  </div>
+  <div class="row">
+    <div class="col-6">
+      <div class="card">
+        <h3>Cut-off 1</h3>
+        <div class="mono" id="cut1Amt">₱0</div>
+        <table>
+          <thead><tr><th>Category</th><th class="right">₱</th></tr></thead>
+          <tbody id="cut1Table"></tbody>
+        </table>
+        <div class="deductions">
+          <p>SSS: <span id="cut1SSS">₱0</span></p>
+          <p>Pag-IBIG: <span id="cut1Pagibig">₱0</span></p>
+          <p>PhilHealth: <span id="cut1Philhealth">₱0</span></p>
+          <p><strong>Net: <span id="cut1Net">₱0</span></strong></p>
         </div>
       </div>
-      <div class="hint">Tip: The tables mirror your Budget percentages so you know what to pay each payroll.</div>
-    </section>
+    </div>
+    <div class="col-6">
+      <div class="card">
+        <h3>Cut-off 2</h3>
+        <div class="mono" id="cut2Amt">₱0</div>
+        <table>
+          <thead><tr><th>Category</th><th class="right">₱</th></tr></thead>
+          <tbody id="cut2Table"></tbody>
+        </table>
+        <div class="deductions">
+          <p>SSS: <span id="cut2SSS">₱0</span></p>
+          <p>Pag-IBIG: <span id="cut2Pagibig">₱0</span></p>
+          <p>PhilHealth: <span id="cut2Philhealth">₱0</span></p>
+          <p><strong>Net: <span id="cut2Net">₱0</span></strong></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hint">Tip: Enter your actual take-home per cut-off to see category allocations and deductions.</div>
+</section>
 
     <!-- BUDGET -->
     <section id="budget" class="card hidden" role="tabpanel">
@@ -475,26 +487,7 @@
     };
   }
 
-  function renderPayroll(){
-    const { net } = netMonthly();
-    const p1 = Math.max(0, Math.min(100, Number(state.cut1||0)));
-    const p2 = Math.max(0, Math.min(100, Number(state.cut2||0)));
-    const norm = (p1 + p2) || 1; // avoid divide by zero
-    const w1 = p1 / norm, w2 = p2 / norm; // normalized
-    const a1 = net * w1, a2 = net * w2;
-    $('#cut1').value = p1; $('#cut2').value = p2;
-    $('#cut1Amt').textContent = peso(a1); $('#cut2Amt').textContent = peso(a2);
-    const t1 = $('#cut1Table'); const t2 = $('#cut2Table'); t1.innerHTML=''; t2.innerHTML='';
 
-    state.budget.forEach(row=>{
-      const m = net * (row.pct/100);
-      const r1 = document.createElement('tr'); r1.innerHTML = `<td>${row.name}</td><td class="right mono">${peso(m*w1)}</td>`; t1.appendChild(r1);
-      const r2 = document.createElement('tr'); r2.innerHTML = `<td>${row.name}</td><td class="right mono">${peso(m*w2)}</td>`; t2.appendChild(r2);
-    });
-
-    $('#cut1').onchange = ()=>{ state.cut1 = Number($('#cut1').value||0); save(); renderPayroll(); };
-    $('#cut2').onchange = ()=>{ state.cut2 = Number($('#cut2').value||0); save(); renderPayroll(); };
-  }
 
   function renderGoals(){
     const body = $('#goalsBody'); body.innerHTML='';
@@ -601,3 +594,4 @@
 </script>
 </body>
 </html>
+
