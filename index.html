@@ -486,7 +486,68 @@
       save(); renderBudget(); renderPayroll();
     };
   }
+function renderPayroll() {
+  const cut1 = Number($('#cut1').value || 0);
+  const cut2 = Number($('#cut2').value || 0);
 
+  // Update state
+  state.cut1 = cut1;
+  state.cut2 = cut2;
+
+  // Display entered amounts
+  $('#cut1Amt').textContent = peso(cut1);
+  $('#cut2Amt').textContent = peso(cut2);
+
+  // Clear old tables
+  const t1 = $('#cut1Table');
+  const t2 = $('#cut2Table');
+  t1.innerHTML = '';
+  t2.innerHTML = '';
+
+  // Budget allocations (based on entered peso amounts)
+  state.budget.forEach(row => {
+    const r1 = document.createElement('tr');
+    r1.innerHTML = `<td>${row.name}</td><td class="right mono">${peso(cut1 * (row.pct / 100))}</td>`;
+    t1.appendChild(r1);
+
+    const r2 = document.createElement('tr');
+    r2.innerHTML = `<td>${row.name}</td><td class="right mono">${peso(cut2 * (row.pct / 100))}</td>`;
+    t2.appendChild(r2);
+  });
+
+  // --- Deductions: only on Cut-off 1 ---
+  const d1 = {
+    sss: state.sss,
+    pagibig: state.pagibig,
+    philhealth: state.philhealth,
+    tax: state.tax
+  };
+  const d2 = {
+    sss: 0,
+    pagibig: 0,
+    philhealth: 0,
+    tax: 0
+  };
+
+  // Net after deductions
+  d1.net = cut1 - (d1.sss + d1.pagibig + d1.philhealth + d1.tax);
+  d2.net = cut2; // no deductions on 2nd cut-off
+
+  // Fill in deductions section
+  $('#cut1SSS').textContent = peso(d1.sss);
+  $('#cut1Pagibig').textContent = peso(d1.pagibig);
+  $('#cut1Philhealth').textContent = peso(d1.philhealth);
+  $('#cut1Net').textContent = peso(d1.net);
+
+  $('#cut2SSS').textContent = peso(d2.sss);
+  $('#cut2Pagibig').textContent = peso(d2.pagibig);
+  $('#cut2Philhealth').textContent = peso(d2.philhealth);
+  $('#cut2Net').textContent = peso(d2.net);
+
+  // Re-bind change events
+  $('#cut1').onchange = () => { state.cut1 = Number($('#cut1').value || 0); save(); renderPayroll(); };
+  $('#cut2').onchange = () => { state.cut2 = Number($('#cut2').value || 0); save(); renderPayroll(); };
+}
 
 
   function renderGoals(){
@@ -594,4 +655,5 @@
 </script>
 </body>
 </html>
+
 
